@@ -6,6 +6,7 @@ use App\Models\FontFamily;
 use App\Models\FontFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 
 class FontController extends Controller
@@ -17,17 +18,38 @@ class FontController extends Controller
         ['totalCount' => $totalCount, 'categories' => $categories] = $this->bundlePayload();
 
         return view('fonts.index', [
-            'totalCount' => $totalCount,
-            'categories' => $categories,
+            'totalCount'    => $totalCount,
+            'categories'    => $categories,
+            'bundleVersion' => $this->bundleVersion(),
         ]);
     }
 
     public function bundleJson(Request $request)
     {
         $payload = $this->bundlePayload();
+        $version = $this->bundleVersion();
 
         return response()->json($payload)
-            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
+            // ?v=<version> in the URL is the actual cache key. Each release of
+            // the catalog gets a unique URL so the browser auto-busts.
+            ->header('Cache-Control', 'public, max-age=31536000, immutable')
+            ->header('X-Bundle-Version', $version);
+    }
+
+    /**
+     * Stable hash that flips whenever the catalog has changed.
+     * Used as a query-string cache-buster so the browser can keep
+     * the bundle indefinitely, but immediately fetches new data
+     * after a re-index.
+     */
+    private function bundleVersion(): string
+    {
+        return Cache::remember('fonts.bundle.version', 300, function () {
+            $famCount   = DB::table('font_families')->count();
+            $fileCount  = DB::table('font_files')->count();
+            $latest     = DB::table('font_families')->max('updated_at') ?? '';
+            return substr(md5("$famCount|$fileCount|$latest"), 0, 10);
+        });
     }
 
     /**

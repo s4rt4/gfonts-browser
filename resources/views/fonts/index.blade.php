@@ -625,6 +625,8 @@
 
 @push('head')
 <script>
+window.__BUNDLE_VERSION__ = @json($bundleVersion);
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('browser', () => ({
         families: [],
@@ -700,9 +702,11 @@ document.addEventListener('alpine:init', () => {
                 this.$watch(key, () => this.syncUrlState());
             });
 
-            // Fetch bundle (cached server-side, also browser-cached 5 min)
+            // Fetch bundle. URL includes ?v=<hash> so browser auto-busts when
+            // the catalog version changes (re-index, matcher, sync).
             try {
-                const res = await fetch('/api/fonts.json', { cache: 'default' });
+                const v = window.__BUNDLE_VERSION__ || Date.now();
+                const res = await fetch(`/api/fonts.json?v=${encodeURIComponent(v)}`, { cache: 'default' });
                 const data = await res.json();
                 this.families = data.families;
                 if (data.categories) this.categories = data.categories;
