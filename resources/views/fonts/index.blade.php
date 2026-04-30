@@ -115,7 +115,7 @@
                 <div class="space-y-2">
                     <h3 class="text-xs font-medium uppercase tracking-wide text-muted">Quick</h3>
                     <label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-surface">
-                        <input type="checkbox" x-model="showFavoritesOnly" class="h-3.5 w-3.5 rounded border-border text-rose-500 focus:ring-rose-500">
+                        <input type="checkbox" x-model="showFavoritesOnly" class="h-3.5 w-3.5 rounded border-border accent-rose-500 focus:ring-rose-500">
                         <span>Favorites only</span>
                         <span class="ml-auto text-xs text-muted" x-text="favorites.length"></span>
                     </label>
