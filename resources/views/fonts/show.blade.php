@@ -180,7 +180,7 @@
     </section>
 
     {{-- Sample / mockup contexts (sticky while scrolling through styles) --}}
-    <section class="sticky top-16 z-20 -mx-6 space-y-3 border-b border-border-soft bg-bg/95 px-6 py-3 backdrop-blur theme-aware">
+    <section class="sticky top-16 z-20 -mx-6 space-y-3 border-b border-border-soft bg-bg px-6 py-3 shadow-[0_8px_16px_-12px_rgb(var(--fg)/0.18)] theme-aware">
         {{-- Mockup tabs --}}
         <div class="flex flex-wrap items-center gap-1">
             <template x-for="m in mockupOptions" :key="m.id">
