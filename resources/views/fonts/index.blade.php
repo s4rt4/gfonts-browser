@@ -654,8 +654,7 @@ document.addEventListener('alpine:init', () => {
         _filterKey: null,
         _filteredCache: [],
 
-        // Lazy font-face loader (IntersectionObserver)
-        _fontObserver: null,
+        // De-dupe @font-face injection across page changes
         _loadedFamilies: new Set(),
 
         sortOptions: [
@@ -677,9 +676,6 @@ document.addEventListener('alpine:init', () => {
             // Restore state from URL query params (filter inputs + page)
             this.readUrlState();
 
-            // Set up IntersectionObserver to lazy-load @font-face per visible card
-            this._setupFontObserver();
-
             // Watchers
             const resetPage = () => { this.page = 1; };
             this.$watch('search', resetPage);
@@ -691,10 +687,11 @@ document.addEventListener('alpine:init', () => {
                 localStorage.setItem('gfonts.favorites', JSON.stringify(v));
             });
 
-            // Re-observe new card DOM nodes whenever the visible page changes
-            this.$watch('pageItems', () => {
-                this.$nextTick(() => this._observeVisibleCards());
-            });
+            // Inject @font-face for current page whenever it changes.
+            // Browser handles actual TTF fetching lazily via font-display: swap
+            // — declaring 48 @font-face is cheap; the network requests only
+            // happen when the cards are actually painted.
+            this.$watch('pageItems', () => this.$nextTick(() => this._loadFonts()));
 
             // URL state sync
             ['search', 'selectedCategories', 'sort', 'page', 'viewMode',
@@ -711,8 +708,7 @@ document.addEventListener('alpine:init', () => {
                 this.families = data.families;
                 if (data.categories) this.categories = data.categories;
                 this.loading = false;
-                // First observation pass after data lands
-                this.$nextTick(() => this._observeVisibleCards());
+                this.$nextTick(() => this._loadFonts());
             } catch (e) {
                 console.error('Failed to load font bundle:', e);
                 this.loading = false;
@@ -720,37 +716,23 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // ─── Font lazy-loader ──────────────────────────────────
-        _setupFontObserver() {
-            this._fontObserver = new IntersectionObserver((entries) => {
-                for (const entry of entries) {
-                    if (!entry.isIntersecting) continue;
-                    const id = parseInt(entry.target.dataset.familyId, 10);
-                    const family = this.families.find(f => f.id === id);
-                    if (family && !this._loadedFamilies.has(family.family)) {
-                        this._loadedFamilies.add(family.family);
-                        this._injectFontFace(family);
-                    }
-                    this._fontObserver.unobserve(entry.target);
-                }
-            }, { rootMargin: '300px 0px' });
-        },
-
-        _observeVisibleCards() {
-            document.querySelectorAll('.font-card:not([data-observed])').forEach(card => {
-                card.dataset.observed = '1';
-                this._fontObserver.observe(card);
-            });
-        },
-
-        _injectFontFace(family) {
-            const css = family.files.map(f => {
-                const weight = f.variable ? '100 900' : (f.weight ?? 400);
-                const fmt = f.variable ? 'truetype-variations' : 'truetype';
-                return `@font-face{font-family:"${family.family}";src:url("/font-file/${f.id}.ttf") format("${fmt}");font-weight:${weight};font-style:${f.style};font-display:swap;}`;
-            }).join('\n');
+        // Inject @font-face for every family on the current page (de-duped).
+        _loadFonts() {
             const styleEl = document.getElementById('dynamic-fonts');
-            styleEl.appendChild(document.createTextNode(css + '\n'));
+            if (!styleEl) return;
+            const fresh = [];
+            for (const family of this.pageItems) {
+                if (this._loadedFamilies.has(family.family)) continue;
+                this._loadedFamilies.add(family.family);
+                for (const f of family.files) {
+                    const weight = f.variable ? '100 900' : (f.weight ?? 400);
+                    const fmt = f.variable ? 'truetype-variations' : 'truetype';
+                    fresh.push(`@font-face{font-family:"${family.family}";src:url("/font-file/${f.id}.ttf") format("${fmt}");font-weight:${weight};font-style:${f.style};font-display:swap;}`);
+                }
+            }
+            if (fresh.length) {
+                styleEl.appendChild(document.createTextNode(fresh.join('\n') + '\n'));
+            }
         },
 
         readUrlState() {
