@@ -35,7 +35,7 @@ $sc.Save()
 Write-Host "  [ok] $lnkPath"
 Write-Host ""
 Write-Host "Done. Shortcut placed on the Desktop:"
-Write-Host "  Gfonts Browser  - starts the server and opens http://localhost:8000"
+Write-Host "  Gfonts Browser  - starts the server and opens http://localhost:9000"
 Write-Host ""
 Write-Host "To stop the server later (rare):"
 Write-Host "  powershell -File tools\stop-app.ps1"

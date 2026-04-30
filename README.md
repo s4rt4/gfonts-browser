@@ -56,7 +56,7 @@ npm run build
 php artisan serve
 ```
 
-Open <http://localhost:8000>.
+Open <http://localhost:9000>.
 
 ---
 
@@ -229,7 +229,7 @@ For one-click start without opening a terminal:
 powershell -ExecutionPolicy Bypass -File tools\install-desktop-shortcut.ps1
 ```
 
-Creates **Gfonts Browser** on the Desktop with the app icon. Double-click to start the PHP server (hidden) and open <http://localhost:8000>. Idempotent — if the server is already up, just opens the browser.
+Creates **Gfonts Browser** on the Desktop with the app icon. Double-click to start the PHP server (hidden) and open <http://localhost:9000>. Idempotent — if the server is already up, just opens the browser.
 
 The launcher uses `php` from PATH or, if not found, falls back to the highest version under `C:\laragon\bin\php\*\php.exe`.
 

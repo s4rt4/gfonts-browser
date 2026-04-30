@@ -264,7 +264,7 @@ def main() -> int:
         print(f'  WARN: failed to clear cache: {e}', file=sys.stderr)
         print(f'  Run manually: php artisan cache:clear')
 
-    print('\nDone. Refresh http://localhost:8000')
+    print('\nDone. Refresh http://localhost:9000')
     return 0
 
 

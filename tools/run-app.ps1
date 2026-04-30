@@ -7,7 +7,7 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$port        = 8000
+$port        = 9000
 $url         = "http://127.0.0.1:$port"
 $pidFile     = Join-Path $projectRoot '.app-pid'
 

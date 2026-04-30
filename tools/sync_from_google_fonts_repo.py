@@ -262,7 +262,7 @@ def main() -> int:
     if args.dry_run:
         print('Dry run complete — no changes were made.')
     else:
-        print('Sync complete. Refresh http://localhost:8000 to see updated fonts.')
+        print('Sync complete. Refresh http://localhost:9000 to see updated fonts.')
     return 0
 
 
