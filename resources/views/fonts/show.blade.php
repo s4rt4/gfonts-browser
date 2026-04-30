@@ -5,9 +5,33 @@
 @section('title', $family->family . ' — ' . config('app.name'))
 
 @section('header')
-<a href="{{ route('fonts.index') }}" class="text-xs text-muted hover:text-fg">
-    ← All fonts
-</a>
+<div class="flex items-center gap-3 text-xs">
+    <a href="{{ route('fonts.index') }}" class="focus-ring rounded inline-flex items-center gap-1 text-muted hover:text-fg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        All fonts
+    </a>
+    @if ($prevSlug || $nextSlug)
+        <span class="text-muted/40">·</span>
+        <div class="flex items-center gap-1">
+            @if ($prevSlug)
+                <a href="{{ route('fonts.show', $prevSlug) }}"
+                   class="focus-ring rounded-md border border-border-soft p-1 text-muted hover:border-border hover:text-fg"
+                   title="Previous: {{ $prevName }}"
+                   aria-label="Previous family">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+            @endif
+            @if ($nextSlug)
+                <a href="{{ route('fonts.show', $nextSlug) }}"
+                   class="focus-ring rounded-md border border-border-soft p-1 text-muted hover:border-border hover:text-fg"
+                   title="Next: {{ $nextName }}"
+                   aria-label="Next family">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+            @endif
+        </div>
+    @endif
+</div>
 @endsection
 
 @php
@@ -24,7 +48,12 @@
 @endphp
 
 @section('content')
-<article class="mx-auto max-w-6xl space-y-8" @keydown.escape.window="window.location.href = '{{ route('fonts.index') }}'">
+<article
+    class="mx-auto max-w-6xl space-y-8"
+    @keydown.escape.window="window.location.href = '{{ route('fonts.index') }}'"
+    @keydown.arrow-left.window="if (!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) { @if($prevSlug) window.location.href = '{{ route('fonts.show', $prevSlug) }}'; @endif }"
+    @keydown.arrow-right.window="if (!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)) { @if($nextSlug) window.location.href = '{{ route('fonts.show', $nextSlug) }}'; @endif }"
+>
 
     <style>
         @foreach ($family->fontFiles as $file)
@@ -99,19 +128,32 @@
         @endif
     </header>
 
-    {{-- Sample text editor --}}
-    <section class="space-y-3">
+    {{-- Sample text editor (sticky while scrolling through styles) --}}
+    <section class="sticky top-16 z-20 -mx-6 space-y-3 border-b border-border-soft bg-bg/95 px-6 py-3 backdrop-blur theme-aware">
         <textarea
             x-model="text"
             rows="2"
-            class="w-full resize-none rounded-md border border-border px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="Type something..."
+            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+            x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'; })"
+            class="focus-ring block w-full resize-none overflow-hidden rounded-md border border-border bg-bg px-3 py-2 text-sm leading-snug theme-aware"
+            placeholder="Type something to preview..."
         ></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+            <template x-for="preset in samplePresets" :key="preset.label">
+                <button
+                    type="button"
+                    @click="text = preset.value"
+                    :class="text === preset.value ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
+                    class="focus-ring rounded-full border px-2.5 py-0.5 text-[11px] theme-aware"
+                    x-text="preset.label"
+                ></button>
+            </template>
+        </div>
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
             <label class="flex items-center gap-2">
                 <span class="text-xs uppercase tracking-wide text-muted">Size</span>
                 <input type="range" min="14" max="200" x-model.number="size" class="w-48">
-                <span class="w-14 text-right tabular-nums" x-text="size + 'px'"></span>
+                <span class="tabular w-14 text-right text-xs" x-text="size + 'px'"></span>
             </label>
             @if ($hasItalicFile || ($hasSlntAxis && $variableFiles->isNotEmpty()))
                 <label class="flex items-center gap-2">
@@ -336,6 +378,12 @@ document.addEventListener('alpine:init', () => {
         collections: JSON.parse(localStorage.getItem('gfonts.collections') || '[]'),
         collectionModalOpen: false,
         newCollectionName: '',
+        samplePresets: [
+            { label: 'Pangram', value: 'The quick brown fox jumps over the lazy dog' },
+            { label: 'Numbers', value: '0 1 2 3 4 5 6 7 8 9' },
+            { label: 'Caps',    value: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+            { label: 'Symbols', value: '! ? @ # $ % & * ( ) — “ ” ' },
+        ],
         pangrams: [
             'The quick brown fox jumps over the lazy dog.',
             'Sphinx of black quartz, judge my vows.',
@@ -396,11 +444,18 @@ document.addEventListener('alpine:init', () => {
                 const data = await res.json();
                 if (res.ok && (data.status === 'installed' || data.status === 'already_installed')) {
                     this.installed = { ...this.installed, [fileId]: true };
+                    const msg = data.status === 'already_installed'
+                        ? `${data.filename} was already installed`
+                        : `${data.filename} installed`;
+                    this.$store.toast.success(msg);
                 } else {
-                    this.installError = { ...this.installError, [fileId]: data.error || `HTTP ${res.status}` };
+                    const errMsg = data.error || `HTTP ${res.status}`;
+                    this.installError = { ...this.installError, [fileId]: errMsg };
+                    this.$store.toast.error(`Install failed: ${errMsg}`);
                 }
             } catch (e) {
                 this.installError = { ...this.installError, [fileId]: e.message };
+                this.$store.toast.error(`Install failed: ${e.message}`);
             } finally {
                 const next = { ...this.installing };
                 delete next[fileId];

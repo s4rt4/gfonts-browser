@@ -31,18 +31,16 @@
     body {
         background-color: rgb(var(--bg));
         color: rgb(var(--fg));
+        font-feature-settings: 'cv11', 'ss01';      /* Inter stylistic features if available */
+        transition: background-color 200ms ease, color 200ms ease;
     }
 
+    /* Smooth tone changes when theme flips */
+    .theme-aware { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
+
     /* Form controls inherit theme colours */
-    input[type="text"],
-    input[type="search"],
-    input[type="email"],
-    input[type="password"],
-    input[type="number"],
-    input[type="tel"],
-    input[type="url"],
-    textarea,
-    select {
+    input[type="text"], input[type="search"], input[type="email"], input[type="password"],
+    input[type="number"], input[type="tel"], input[type="url"], textarea, select {
         background-color: rgb(var(--bg));
         color: rgb(var(--fg));
     }
@@ -54,21 +52,60 @@
     ::selection {
         background-color: rgb(var(--accent) / 0.25);
     }
+
+    /* ─── Sliders (range) — branded thumb + track ─── */
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px;
+        background: rgb(var(--border-soft));
+        border-radius: 999px;
+        cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 999px;
+        background: rgb(var(--border-soft));
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        margin-top: -5px;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: rgb(var(--accent));
+        border: 2px solid rgb(var(--bg));
+        box-shadow: 0 0 0 1px rgb(var(--accent) / 0.4);
+        transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 4px rgb(var(--accent) / 0.18);
+    }
+    input[type="range"]::-moz-range-track {
+        height: 4px;
+        border-radius: 999px;
+        background: rgb(var(--border-soft));
+    }
+    input[type="range"]::-moz-range-thumb {
+        width: 14px; height: 14px;
+        border-radius: 999px;
+        background: rgb(var(--accent));
+        border: 2px solid rgb(var(--bg));
+        box-shadow: 0 0 0 1px rgb(var(--accent) / 0.4);
+        cursor: pointer;
+    }
 }
 
-@layer utilities {
+@layer components {
     /* Subtle scrollbar — used inside sidebar */
     .thin-scrollbar {
         scrollbar-width: thin;
         scrollbar-color: rgb(var(--border) / 0.5) transparent;
     }
-    .thin-scrollbar::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    .thin-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
+    .thin-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .thin-scrollbar::-webkit-scrollbar-thumb {
         background-color: rgb(var(--border) / 0.45);
         border-radius: 999px;
@@ -76,4 +113,37 @@
     .thin-scrollbar::-webkit-scrollbar-thumb:hover {
         background-color: rgb(var(--muted) / 0.6);
     }
+
+    /* Focus ring shorthand — keyboard-only */
+    .focus-ring {
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
+    }
+
+    /* Smooth card hover lift */
+    .card-hover {
+        @apply transition-all duration-150 ease-out;
+    }
+    .card-hover:hover {
+        @apply -translate-y-px shadow-card-hover;
+    }
+
+    /* Skeleton shimmer */
+    .skeleton {
+        background-image: linear-gradient(
+            90deg,
+            rgb(var(--border-soft) / 0.4) 0%,
+            rgb(var(--border) / 0.6) 50%,
+            rgb(var(--border-soft) / 0.4) 100%
+        );
+        background-size: 200% 100%;
+        @apply animate-shimmer rounded;
+    }
+
+    /* Tabular numerals utility */
+    .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer utilities {
+    /* Stable inset shadow on focused elements without hard outline */
+    .ring-soft { box-shadow: 0 0 0 3px rgb(var(--accent) / 0.16); }
 }

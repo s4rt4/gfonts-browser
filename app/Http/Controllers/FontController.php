@@ -106,10 +106,30 @@ class FontController extends Controller
             }
         }
 
+        // Prev / next family (alphabetical) for keyboard nav
+        $siblings = Cache::remember('fonts.siblings', 60, function () {
+            return FontFamily::where('file_count', '>', 0)
+                ->orderBy('family')
+                ->pluck('family')
+                ->toArray();
+        });
+        $idx = array_search($family->family, $siblings, true);
+        $slugify = fn ($name) => $name === false || $name === null
+            ? null
+            : strtolower(str_replace(' ', '-', $name));
+        $prevSlug = $idx > 0 ? $slugify($siblings[$idx - 1] ?? null) : null;
+        $nextSlug = ($idx !== false && $idx < count($siblings) - 1) ? $slugify($siblings[$idx + 1] ?? null) : null;
+        $prevName = $idx > 0 ? ($siblings[$idx - 1] ?? null) : null;
+        $nextName = ($idx !== false && $idx < count($siblings) - 1) ? ($siblings[$idx + 1] ?? null) : null;
+
         return view('fonts.show', [
             'family'         => $family,
             'axisRegistry'   => $axisRegistry,
             'installedFiles' => $installedFiles,
+            'prevSlug'       => $prevSlug,
+            'nextSlug'       => $nextSlug,
+            'prevName'       => $prevName,
+            'nextName'       => $nextName,
         ]);
     }
 

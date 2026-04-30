@@ -5,8 +5,9 @@
 @section('title', 'Compare — ' . config('app.name'))
 
 @section('header')
-<a href="{{ route('fonts.index') }}" class="text-xs text-muted hover:text-fg">
-    ← All fonts
+<a href="{{ route('fonts.index') }}" class="focus-ring inline-flex items-center gap-1 rounded text-xs text-muted hover:text-fg">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    All fonts
 </a>
 @endsection
 
@@ -50,19 +51,30 @@
         <textarea
             x-model="text"
             rows="2"
-            class="w-full resize-none rounded-md border border-border px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="Type something..."
+            class="focus-ring w-full resize-none rounded-md border border-border bg-bg px-3 py-2 text-sm theme-aware"
+            placeholder="Type something to compare..."
         ></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+            <template x-for="preset in samplePresets" :key="preset.label">
+                <button
+                    type="button"
+                    @click="text = preset.value"
+                    :class="text === preset.value ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
+                    class="focus-ring rounded-full border px-2.5 py-0.5 text-[11px] theme-aware"
+                    x-text="preset.label"
+                ></button>
+            </template>
+        </div>
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
             <label class="flex items-center gap-2">
                 <span class="text-xs uppercase tracking-wide text-muted">Size</span>
                 <input type="range" min="14" max="120" x-model.number="size" class="w-48">
-                <span class="w-14 text-right tabular-nums" x-text="size + 'px'"></span>
+                <span class="tabular w-14 text-right text-xs" x-text="size + 'px'"></span>
             </label>
             <label class="flex items-center gap-2">
                 <span class="text-xs uppercase tracking-wide text-muted">Weight</span>
                 <input type="range" min="100" max="900" step="100" x-model.number="weight" class="w-48">
-                <span class="w-14 text-right tabular-nums" x-text="weight"></span>
+                <span class="tabular w-14 text-right text-xs" x-text="weight"></span>
             </label>
             <label class="flex items-center gap-2">
                 <input type="checkbox" x-model="italic" class="h-4 w-4 rounded border-border">
@@ -105,6 +117,12 @@ document.addEventListener('alpine:init', () => {
         size: 48,
         weight: 400,
         italic: false,
+        samplePresets: [
+            { label: 'Pangram', value: 'The quick brown fox jumps over the lazy dog' },
+            { label: 'Numbers', value: '0 1 2 3 4 5 6 7 8 9' },
+            { label: 'Caps',    value: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+            { label: 'Symbols', value: '! ? @ # $ % & * ( ) — “ ” ' },
+        ],
     }));
 });
 </script>

@@ -4,21 +4,25 @@
 
 @section('header')
     <div class="relative w-full max-w-2xl">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">
             <circle cx="11" cy="11" r="7"/>
             <path stroke-linecap="round" d="M20 20l-3.5-3.5"/>
         </svg>
         <input
             type="search"
             x-model.debounce.150ms="search"
-            placeholder="Search {{ number_format($totalCount) }} fonts..."
-            class="w-full rounded-full border border-border bg-bg py-2 pl-10 pr-10 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            placeholder="Search {{ number_format($totalCount) }} fonts"
+            class="focus-ring w-full rounded-full border border-border bg-bg py-2 pl-10 pr-16 text-sm theme-aware"
         >
+        <kbd
+            x-show="!search"
+            class="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded border border-border-soft bg-surface px-1.5 py-0.5 font-mono text-[10px] text-muted md:block"
+        >/</kbd>
         <button
             x-show="search"
             type="button"
             @click="search = ''"
-            class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface hover:text-fg"
+            class="focus-ring absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface hover:text-fg"
             aria-label="Clear search"
         >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3">
@@ -43,8 +47,19 @@
                         rows="3"
                         @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
                         x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'; })"
-                        class="block w-full resize-none overflow-hidden rounded-md border border-border bg-bg px-3 py-2 text-sm leading-snug focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                        class="focus-ring block w-full resize-none overflow-hidden rounded-md border border-border bg-bg px-3 py-2 text-sm leading-snug theme-aware"
                     ></textarea>
+                    <div class="mt-2 flex flex-wrap gap-1">
+                        <template x-for="preset in samplePresets" :key="preset.label">
+                            <button
+                                type="button"
+                                @click="previewText = preset.value"
+                                :class="previewText === preset.value ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
+                                class="focus-ring rounded-full border px-2 py-0.5 text-[11px] theme-aware"
+                                x-text="preset.label"
+                            ></button>
+                        </template>
+                    </div>
                     <div class="mt-3 flex items-center gap-2">
                         <span class="text-xs text-muted">Size</span>
                         <input
@@ -54,7 +69,7 @@
                             x-model.number="previewSize"
                             class="flex-1"
                         >
-                        <span class="w-10 text-right text-xs text-muted" x-text="previewSize + 'px'"></span>
+                        <span class="tabular w-10 text-right text-xs text-muted" x-text="previewSize + 'px'"></span>
                     </div>
                 </div>
 
@@ -179,12 +194,16 @@
             <style id="dynamic-fonts"></style>
 
             <div class="mb-3 flex items-center justify-between gap-3 text-xs text-muted">
-                <span class="min-w-0">
-                    <span x-text="filtered.length"></span>
-                    of {{ number_format($totalCount) }} families
+                <span class="tabular min-w-0">
+                    <template x-if="filtered.length === families.length">
+                        <span>Showing all {{ number_format($totalCount) }} fonts</span>
+                    </template>
+                    <template x-if="filtered.length !== families.length">
+                        <span><span x-text="filtered.length.toLocaleString()"></span> of {{ number_format($totalCount) }} fonts</span>
+                    </template>
                 </span>
                 <div class="flex items-center gap-3">
-                    <span x-show="pageCount > 1">
+                    <span x-show="pageCount > 1" class="tabular">
                         page <span x-text="page"></span> / <span x-text="pageCount"></span>
                     </span>
                     <div class="flex overflow-hidden rounded-md border border-border-soft">
@@ -192,11 +211,11 @@
                             type="button"
                             @click="setViewMode('grid')"
                             :class="viewMode === 'grid' ? 'bg-fg text-bg' : 'text-muted hover:bg-surface'"
-                            class="p-1.5"
+                            class="focus-ring p-1.5 transition-colors"
                             aria-label="Grid view"
                             title="Grid view"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-3.5 w-3.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5">
                                 <rect x="3" y="3" width="7" height="7" rx="1"/>
                                 <rect x="14" y="3" width="7" height="7" rx="1"/>
                                 <rect x="3" y="14" width="7" height="7" rx="1"/>
@@ -207,11 +226,11 @@
                             type="button"
                             @click="setViewMode('list')"
                             :class="viewMode === 'list' ? 'bg-fg text-bg' : 'text-muted hover:bg-surface'"
-                            class="p-1.5"
+                            class="focus-ring p-1.5 transition-colors"
                             aria-label="List view"
                             title="List view"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-3.5 w-3.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5">
                                 <line x1="3" y1="6" x2="21" y2="6" stroke-linecap="round"/>
                                 <line x1="3" y1="12" x2="21" y2="12" stroke-linecap="round"/>
                                 <line x1="3" y1="18" x2="21" y2="18" stroke-linecap="round"/>
@@ -221,6 +240,55 @@
                 </div>
             </div>
 
+            {{-- Filter chips ─────────────────────────────────── --}}
+            <div
+                x-show="search || selectedCategories.length || showFavoritesOnly || activeCollection || sort !== 'popularity'"
+                x-cloak
+                class="mb-4 flex flex-wrap items-center gap-1.5"
+            >
+                <template x-if="search">
+                    <button @click="search = ''" class="focus-ring group inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-surface px-2.5 py-1 text-xs text-fg hover:border-border">
+                        <span class="text-muted">Search:</span>
+                        <span class="font-medium" x-text="`&ldquo;${search}&rdquo;`"></span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 text-muted group-hover:text-fg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-for="cat in selectedCategories" :key="cat">
+                    <button
+                        @click="selectedCategories = selectedCategories.filter(c => c !== cat)"
+                        class="focus-ring group inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-surface px-2.5 py-1 text-xs text-fg hover:border-border"
+                    >
+                        <span x-text="cat"></span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 text-muted group-hover:text-fg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="showFavoritesOnly">
+                    <button @click="showFavoritesOnly = false" class="focus-ring group inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/5 px-2.5 py-1 text-xs text-fg hover:border-rose-500/60">
+                        <svg viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3 text-rose-500"><path d="M12 21s-7-4.5-9-8.7C1.6 9.7 3.5 6 7 6c2 0 3.5 1.2 4.5 2.5C13 7.2 14.5 6 16.5 6c3.5 0 5.4 3.7 4 6.3-2 4.2-9 8.7-9 8.7z"/></svg>
+                        <span>Favorites</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 text-muted group-hover:text-fg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="activeCollection">
+                    <button @click="activeCollection = null" class="focus-ring group inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/5 px-2.5 py-1 text-xs text-fg hover:border-accent/60">
+                        <svg viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3 text-accent"><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3-7 3z"/></svg>
+                        <span x-text="collections.find(c => c.id === activeCollection)?.name"></span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 text-muted group-hover:text-fg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="sort !== 'popularity'">
+                    <button @click="sort = 'popularity'" class="focus-ring group inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-surface px-2.5 py-1 text-xs text-fg hover:border-border">
+                        <span class="text-muted">Sort:</span>
+                        <span x-text="sortOptions.find(o => o.value === sort)?.label"></span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 text-muted group-hover:text-fg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <button
+                    @click="resetFilters"
+                    class="focus-ring rounded-full px-2 py-1 text-xs text-muted underline-offset-2 hover:text-fg hover:underline"
+                >Clear all</button>
+            </div>
+
             <div
                 :class="viewMode === 'grid' ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'flex flex-col gap-3'"
                 x-show="pageItems.length > 0"
@@ -228,7 +296,7 @@
                 <template x-for="family in pageItems" :key="family.id">
                     <a
                         :href="`/fonts/${slug(family.family)}`"
-                        class="font-card group relative block rounded-lg border border-border-soft transition hover:border-border hover:shadow-sm"
+                        class="font-card card-hover focus-ring group relative block rounded-lg border border-border-soft bg-bg shadow-card hover:border-border"
                         :class="[
                             compareMode && compareSelection.includes(family.family) ? 'ring-2 ring-accent ring-offset-2' : '',
                             viewMode === 'list' ? 'p-6' : 'p-5'
@@ -301,8 +369,43 @@
                 </template>
             </div>
 
-            <div x-show="filtered.length === 0" class="rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted">
-                No families match these filters.
+            {{-- Empty states: search no-match / favorites empty / collection empty / generic --}}
+            <div x-show="filtered.length === 0" x-cloak class="rounded-lg border border-dashed border-border-soft px-6 py-16">
+                <template x-if="search.trim() && !showFavoritesOnly && !activeCollection">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto h-10 w-10 text-muted/50">
+                            <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/>
+                        </svg>
+                        <p class="mt-4 text-sm font-medium text-fg">No fonts found for &ldquo;<span x-text="search"></span>&rdquo;</p>
+                        <p class="mt-1 text-sm text-muted">Try a shorter query or different spelling.</p>
+                        <button @click="resetFilters" class="focus-ring mt-4 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Clear filters</button>
+                    </div>
+                </template>
+                <template x-if="!search.trim() && showFavoritesOnly">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto h-10 w-10 text-rose-500/40">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-4.5-9-8.7C1.6 9.7 3.5 6 7 6c2 0 3.5 1.2 4.5 2.5C13 7.2 14.5 6 16.5 6c3.5 0 5.4 3.7 4 6.3-2 4.2-9 8.7-9 8.7z"/>
+                        </svg>
+                        <p class="mt-4 text-sm font-medium text-fg">No favorites yet</p>
+                        <p class="mt-1 text-sm text-muted">Click the heart on any font card to add it here.</p>
+                        <button @click="showFavoritesOnly = false" class="focus-ring mt-4 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Browse all fonts</button>
+                    </div>
+                </template>
+                <template x-if="!search.trim() && activeCollection">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto h-10 w-10 text-accent/40">
+                            <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3-7 3z"/>
+                        </svg>
+                        <p class="mt-4 text-sm font-medium text-fg">
+                            &ldquo;<span x-text="collections.find(c => c.id === activeCollection)?.name"></span>&rdquo; is empty
+                        </p>
+                        <p class="mt-1 text-sm text-muted">Click the bookmark on any font to add it to this collection.</p>
+                        <button @click="activeCollection = null" class="focus-ring mt-4 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface">Browse all fonts</button>
+                    </div>
+                </template>
+                <template x-if="!search.trim() && !showFavoritesOnly && !activeCollection">
+                    <div class="text-center text-sm text-muted">No families match these filters.</div>
+                </template>
             </div>
 
             <div class="mt-8 flex items-center justify-center gap-2" x-show="pageCount > 1">
@@ -310,17 +413,23 @@
                     type="button"
                     @click="prevPage"
                     :disabled="page === 1"
-                    class="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
-                >Prev</button>
-                <span class="px-2 text-sm text-muted">
+                    class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Prev
+                </button>
+                <span class="tabular px-2 text-sm text-muted">
                     <span x-text="page"></span> / <span x-text="pageCount"></span>
                 </span>
                 <button
                     type="button"
                     @click="nextPage"
                     :disabled="page === pageCount"
-                    class="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
-                >Next</button>
+                    class="focus-ring inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                    Next
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
             </div>
         </section>
     </div>
@@ -436,36 +545,14 @@
         </div>
     </div>
 
-    {{-- Active collection indicator --}}
-    <div
-        x-show="activeCollection"
-        x-cloak
-        class="fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-full border border-accent/40 bg-bg px-4 py-2 text-xs shadow-lg"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5 text-accent">
-            <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3-7 3z"/>
-        </svg>
-        <span>Showing</span>
-        <span class="font-medium" x-text="collections.find(c => c.id === activeCollection)?.name"></span>
-        <button
-            type="button"
-            @click="activeCollection = null"
-            class="ml-1 rounded p-0.5 text-muted hover:text-fg"
-            title="Show all"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3">
-                <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-        </button>
-    </div>
-
     {{-- Floating compare bar --}}
     <div
         x-show="compareMode && compareSelection.length > 0"
         x-cloak
-        class="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-border-soft bg-bg px-4 py-2 shadow-lg"
+        x-transition.opacity.duration.200ms
+        class="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-border-soft bg-bg px-4 py-2 shadow-popover"
     >
-        <span class="text-xs text-muted">
+        <span class="tabular text-xs text-muted">
             <span x-text="compareSelection.length"></span> / 4 selected
         </span>
         <span class="hidden text-xs text-fg md:inline" x-text="compareSelection.join(' · ')"></span>
@@ -473,12 +560,12 @@
             type="button"
             @click="goToCompare()"
             :disabled="compareSelection.length < 2"
-            class="rounded-md bg-fg px-3 py-1 text-xs text-bg hover:bg-fg/90 disabled:cursor-not-allowed disabled:opacity-40"
+            class="focus-ring rounded-md bg-fg px-3 py-1 text-xs text-bg hover:bg-fg/90 disabled:cursor-not-allowed disabled:opacity-40"
         >Compare</button>
         <button
             type="button"
             @click="compareSelection = []"
-            class="text-xs text-muted hover:text-fg"
+            class="focus-ring text-xs text-muted hover:text-fg"
         >Clear</button>
     </div>
 </div>
@@ -516,6 +603,14 @@ document.addEventListener('alpine:init', () => {
             { value: 'trending',   label: 'Trending' },
             { value: 'alpha',      label: 'A → Z' },
             { value: 'newest',     label: 'Newest' },
+        ],
+
+        samplePresets: [
+            { label: 'Pangram', value: 'The quick brown fox jumps over the lazy dog' },
+            { label: 'Numbers', value: '0 1 2 3 4 5 6 7 8 9' },
+            { label: 'Caps',    value: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+            { label: 'Symbols', value: '! ? @ # $ % & * ( ) — “ ” ' },
+            { label: 'Custom',  value: 'Type your own preview' },
         ],
 
         init() {
@@ -615,6 +710,7 @@ document.addEventListener('alpine:init', () => {
             const id = 'col_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
             this.collections.push({ id, name, fonts: [] });
             this.saveCollections();
+            this.$store.toast.success(`Collection "${name}" created`);
             return id;
         },
 
@@ -631,6 +727,7 @@ document.addEventListener('alpine:init', () => {
             this.collections = this.collections.filter(c => c.id !== id);
             if (this.activeCollection === id) this.activeCollection = null;
             this.saveCollections();
+            this.$store.toast.info(`Deleted "${col.name}"`);
         },
 
         async renameCollection(id) {
