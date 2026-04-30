@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* Daylight cream — inspired by daas-v3 */
+        --bg:          245 241 232;
+        --surface:     250 246 237;
+        --fg:           29  26  21;
+        --muted:       111 102  87;
+        --border:      217 208 191;
+        --border-soft: 233 222 204;
+        --accent:      199  86  42;
+    }
+
+    [data-theme="dark"] {
+        --bg:           21  21  21;
+        --surface:      32  32  32;
+        --fg:          244 239 232;
+        --muted:       183 174 160;
+        --border:       60  60  60;
+        --border-soft:  71  71  71;
+        --accent:      231 121  75;
+    }
+
+    html {
+        color-scheme: light dark;
+    }
+
+    body {
+        background-color: rgb(var(--bg));
+        color: rgb(var(--fg));
+    }
+
+    /* Form controls inherit theme colours */
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    textarea,
+    select {
+        background-color: rgb(var(--bg));
+        color: rgb(var(--fg));
+    }
+    input::placeholder, textarea::placeholder {
+        color: rgb(var(--muted) / 0.7);
+    }
+
+    /* Selection */
+    ::selection {
+        background-color: rgb(var(--accent) / 0.25);
+    }
+}
+
+@layer utilities {
+    /* Subtle scrollbar — used inside sidebar */
+    .thin-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(var(--border) / 0.5) transparent;
+    }
+    .thin-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .thin-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .thin-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgb(var(--border) / 0.45);
+        border-radius: 999px;
+    }
+    .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgb(var(--muted) / 0.6);
+    }
+}

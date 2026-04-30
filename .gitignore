@@ -1,0 +1,37 @@
+/.phpunit.cache
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+.env
+.env.backup
+.env.production
+
+# Local font collection (user-provided, large; configured via FONTS_ROOT)
+/google-ttf
+
+# Generated SQLite (rebuilt by tools/load_fonts.py)
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Python loader cache
+/tools/__pycache__
+*.pyc
+
+# Claude / editor scratch
+/.claude
+.phpactor.json
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/auth.json
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
