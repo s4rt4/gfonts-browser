@@ -24,6 +24,9 @@
 /tools/__pycache__
 *.pyc
 
+# Runtime PID file written by tools/run-app.ps1
+/.app-pid
+
 # Claude / editor scratch
 /.claude
 .phpactor.json

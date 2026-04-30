@@ -221,6 +221,21 @@ The install state is read from the filesystem on every detail-page load, so the 
 
 ---
 
+## Desktop launcher (Windows)
+
+For one-click start without opening a terminal:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\install-desktop-shortcut.ps1
+```
+
+Creates two shortcuts on the Desktop with the app icon:
+
+- **Gfonts Browser** — starts the PHP server (hidden) and opens <http://localhost:8000>. Idempotent: if the server is already up, just opens the browser.
+- **Gfonts Browser (stop)** — kills the server (only the one this launcher started).
+
+The launcher uses `php` from PATH or, if not found, falls back to the highest version under `C:\laragon\bin\php\*\php.exe`.
+
 ## Refreshing TTFs from upstream Google Fonts
 
 Pull the latest TTFs from [github.com/google/fonts](https://github.com/google/fonts):
