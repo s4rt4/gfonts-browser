@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [FontController::class, 'index'])->name('fonts.index');
 
+Route::get('/api/fonts.json', [FontController::class, 'bundleJson'])->name('fonts.bundle');
+
 Route::get('/compare', [FontController::class, 'compare'])->name('fonts.compare');
 
 Route::get('/fonts/{slug}', [FontController::class, 'show'])

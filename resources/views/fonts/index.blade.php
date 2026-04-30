@@ -331,9 +331,20 @@
                 >Clear all</button>
             </div>
 
+            {{-- Loading skeleton (shown while bundle is fetching) --}}
+            <div x-show="loading" x-cloak class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                @for ($i = 0; $i < 8; $i++)
+                    <div class="rounded-lg border border-border-soft p-5">
+                        <div class="skeleton h-4 w-32"></div>
+                        <div class="skeleton mt-2 h-3 w-48"></div>
+                        <div class="skeleton mt-5 h-9 w-full"></div>
+                    </div>
+                @endfor
+            </div>
+
             <div
                 :class="viewMode === 'grid' ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'flex flex-col gap-3'"
-                x-show="pageItems.length > 0"
+                x-show="!loading && pageItems.length > 0"
             >
                 <template x-for="family in pageItems" :key="family.id">
                     <a
@@ -412,7 +423,7 @@
             </div>
 
             {{-- Empty states: search no-match / favorites empty / collection empty / generic --}}
-            <div x-show="filtered.length === 0" x-cloak class="rounded-lg border border-dashed border-border-soft px-6 py-16">
+            <div x-show="!loading && filtered.length === 0" x-cloak class="rounded-lg border border-dashed border-border-soft px-6 py-16">
                 <template x-if="search.trim() && !showFavoritesOnly && !activeCollection">
                     <div class="text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto h-10 w-10 text-muted/50">
@@ -613,15 +624,12 @@
 </div>
 
 @push('head')
-<style>[x-cloak]{display:none!important}</style>
 <script>
-window.__FONTS_BUNDLE__ = @json($bundle);
-window.__CATEGORIES__   = @json($categories);
-
 document.addEventListener('alpine:init', () => {
     Alpine.data('browser', () => ({
-        families: window.__FONTS_BUNDLE__,
-        categories: window.__CATEGORIES__,
+        families: [],
+        categories: @json($categories),
+        loading: true,
         search: '',
         selectedCategories: [],
         sort: 'popularity',
@@ -640,6 +648,14 @@ document.addEventListener('alpine:init', () => {
         newCollectionName: '',
         dialog: { open: false, type: null, title: '', message: '', confirmLabel: 'OK', cancelLabel: 'Cancel', danger: false, inputValue: '', resolve: null },
 
+        // Memoization for filtered getter
+        _filterKey: null,
+        _filteredCache: [],
+
+        // Lazy font-face loader (IntersectionObserver)
+        _fontObserver: null,
+        _loadedFamilies: new Set(),
+
         sortOptions: [
             { value: 'popularity', label: 'Popularity' },
             { value: 'trending',   label: 'Trending' },
@@ -655,13 +671,14 @@ document.addEventListener('alpine:init', () => {
             { label: 'Custom',  value: 'Type your own preview' },
         ],
 
-        init() {
-            // Restore state from URL query params
+        async init() {
+            // Restore state from URL query params (filter inputs + page)
             this.readUrlState();
 
-            this.$watch('pageItems', () => this.updateFontFaces());
-            this.updateFontFaces();
+            // Set up IntersectionObserver to lazy-load @font-face per visible card
+            this._setupFontObserver();
 
+            // Watchers
             const resetPage = () => { this.page = 1; };
             this.$watch('search', resetPage);
             this.$watch('selectedCategories', resetPage);
@@ -672,11 +689,64 @@ document.addEventListener('alpine:init', () => {
                 localStorage.setItem('gfonts.favorites', JSON.stringify(v));
             });
 
-            // Sync filters to URL (shareable / bookmarkable)
+            // Re-observe new card DOM nodes whenever the visible page changes
+            this.$watch('pageItems', () => {
+                this.$nextTick(() => this._observeVisibleCards());
+            });
+
+            // URL state sync
             ['search', 'selectedCategories', 'sort', 'page', 'viewMode',
              'showFavoritesOnly', 'activeCollection'].forEach(key => {
                 this.$watch(key, () => this.syncUrlState());
             });
+
+            // Fetch bundle (cached server-side, also browser-cached 5 min)
+            try {
+                const res = await fetch('/api/fonts.json', { cache: 'default' });
+                const data = await res.json();
+                this.families = data.families;
+                if (data.categories) this.categories = data.categories;
+                this.loading = false;
+                // First observation pass after data lands
+                this.$nextTick(() => this._observeVisibleCards());
+            } catch (e) {
+                console.error('Failed to load font bundle:', e);
+                this.loading = false;
+                this.$store.toast.error('Failed to load font catalog. Check the server.');
+            }
+        },
+
+        // ─── Font lazy-loader ──────────────────────────────────
+        _setupFontObserver() {
+            this._fontObserver = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    const id = parseInt(entry.target.dataset.familyId, 10);
+                    const family = this.families.find(f => f.id === id);
+                    if (family && !this._loadedFamilies.has(family.family)) {
+                        this._loadedFamilies.add(family.family);
+                        this._injectFontFace(family);
+                    }
+                    this._fontObserver.unobserve(entry.target);
+                }
+            }, { rootMargin: '300px 0px' });
+        },
+
+        _observeVisibleCards() {
+            document.querySelectorAll('.font-card:not([data-observed])').forEach(card => {
+                card.dataset.observed = '1';
+                this._fontObserver.observe(card);
+            });
+        },
+
+        _injectFontFace(family) {
+            const css = family.files.map(f => {
+                const weight = f.variable ? '100 900' : (f.weight ?? 400);
+                const fmt = f.variable ? 'truetype-variations' : 'truetype';
+                return `@font-face{font-family:"${family.family}";src:url("/font-file/${f.id}.ttf") format("${fmt}");font-weight:${weight};font-style:${f.style};font-display:swap;}`;
+            }).join('\n');
+            const styleEl = document.getElementById('dynamic-fonts');
+            styleEl.appendChild(document.createTextNode(css + '\n'));
         },
 
         readUrlState() {
@@ -706,17 +776,31 @@ document.addEventListener('alpine:init', () => {
             window.history.replaceState({}, '', url);
         },
 
-        updateFontFaces() {
-            const css = this.pageItems.flatMap(family =>
-                family.files.map(f => {
-                    const weight = f.variable ? '100 900' : (f.weight ?? 400);
-                    return `@font-face{font-family:"${family.family}";src:url("/font-file/${f.id}.ttf") format("truetype");font-weight:${weight};font-style:${f.style};font-display:swap;}`;
-                })
-            ).join('\n');
-            document.getElementById('dynamic-fonts').textContent = css;
+        get filtered() {
+            // Build a cheap cache key from all dependencies. Alpine reactivity
+            // tracks each access here so when any input changes the getter
+            // re-runs, computes a new key, misses cache, recomputes.
+            const tagInQuery = /#[\w-]+/.test(this.search);
+            const key = JSON.stringify([
+                this.families.length,
+                this.search.trim(),
+                [...this.selectedCategories].sort(),
+                this.sort,
+                this.showFavoritesOnly ? this.favorites.length + ':' + this.favorites.join(',') : 0,
+                this.activeCollection || null,
+                this.activeCollection ? this.collections.find(c => c.id === this.activeCollection)?.fonts.join(',') : '',
+                // Only invalidate on notes if a tag is actively in the query
+                tagInQuery ? Object.keys(this.$store.notes.data).length + ':' + JSON.stringify(this.$store.notes.data) : 0,
+            ]);
+            if (key === this._filterKey) {
+                return this._filteredCache;
+            }
+            this._filterKey = key;
+            this._filteredCache = this._computeFiltered();
+            return this._filteredCache;
         },
 
-        get filtered() {
+        _computeFiltered() {
             let out = this.families;
             let raw = this.search.trim();
 

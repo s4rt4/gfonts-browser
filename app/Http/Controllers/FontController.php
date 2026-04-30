@@ -12,42 +12,64 @@ class FontController extends Controller
 {
     public function index(Request $request)
     {
-        $families = FontFamily::query()
-            ->where('file_count', '>', 0)
-            ->with(['fontFiles' => function ($q) {
-                $q->orderBy('weight')->orderBy('style');
-            }])
-            ->get();
-
-        $bundle = $families->map(function (FontFamily $f) {
-            return [
-                'id'           => $f->id,
-                'family'       => $f->family,
-                'category'     => $f->category,
-                'popularity'   => $f->popularity,
-                'trending'     => $f->trending,
-                'file_count'   => $f->file_count,
-                'is_variable'  => $f->is_variable,
-                'is_noto'      => $f->is_noto,
-                'date_added'   => optional($f->date_added)->format('Y-m-d'),
-                'designers'    => $f->designers,
-                'subsets'      => $f->subsets,
-                'files'        => $f->fontFiles->map(fn ($x) => [
-                    'id'       => $x->id,
-                    'weight'   => $x->is_variable ? null : ($x->weight ?? 400),
-                    'style'    => $x->style,
-                    'variable' => $x->is_variable,
-                ])->values(),
-            ];
-        })->values();
-
-        $categories = $families->pluck('category')->unique()->sort()->values();
+        // Index page now ships only the shell + headline counts.
+        // The heavy bundle is fetched async from /api/fonts.json.
+        ['totalCount' => $totalCount, 'categories' => $categories] = $this->bundlePayload();
 
         return view('fonts.index', [
-            'bundle'     => $bundle,
+            'totalCount' => $totalCount,
             'categories' => $categories,
-            'totalCount' => $families->count(),
         ]);
+    }
+
+    public function bundleJson(Request $request)
+    {
+        $payload = $this->bundlePayload();
+
+        return response()->json($payload)
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
+    }
+
+    /**
+     * Cached bundle payload — heavy query runs at most once every 5 minutes.
+     * Re-index via load_fonts.py invalidates this via cache:clear.
+     */
+    private function bundlePayload(): array
+    {
+        return Cache::remember('fonts.bundle.v2', 300, function () {
+            $families = FontFamily::query()
+                ->where('file_count', '>', 0)
+                ->with(['fontFiles' => fn ($q) => $q->orderBy('weight')->orderBy('style')])
+                ->get();
+
+            $bundle = $families->map(function (FontFamily $f) {
+                return [
+                    'id'          => $f->id,
+                    'family'      => $f->family,
+                    'slug'        => $f->slug,
+                    'category'    => $f->category,
+                    'popularity'  => $f->popularity,
+                    'trending'    => $f->trending,
+                    'file_count'  => $f->file_count,
+                    'is_variable' => (bool) $f->is_variable,
+                    // Trimmed: only what the index UI actually reads
+                    'date_added'  => optional($f->date_added)->format('Y-m-d'),
+                    'designers'   => $f->designers,
+                    'files'       => $f->fontFiles->map(fn ($x) => [
+                        'id'       => $x->id,
+                        'weight'   => $x->is_variable ? null : ($x->weight ?? 400),
+                        'style'    => $x->style,
+                        'variable' => (bool) $x->is_variable,
+                    ])->values(),
+                ];
+            })->values();
+
+            return [
+                'families'   => $bundle,
+                'categories' => $families->pluck('category')->unique()->sort()->values()->all(),
+                'totalCount' => $families->count(),
+            ];
+        });
     }
 
     public function compare(Request $request)
@@ -84,8 +106,9 @@ class FontController extends Controller
 
     public function show(string $slug)
     {
+        // Slug column is unique-indexed — lookup is O(1) instead of full scan.
         $family = FontFamily::query()
-            ->whereRaw('LOWER(REPLACE(family, " ", "-")) = ?', [strtolower($slug)])
+            ->where('slug', strtolower($slug))
             ->with(['fontFiles' => fn ($q) => $q->orderBy('weight')->orderBy('style')])
             ->firstOrFail();
 

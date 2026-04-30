@@ -186,6 +186,7 @@ def main() -> int:
         family_rows.append((
             fam_name,
             meta.get("displayName"),
+            fam_name.lower().replace(" ", "-"),
             meta.get("category") or "Unknown",
             meta.get("stroke"),
             json.dumps(meta.get("subsets") or []),
@@ -211,13 +212,13 @@ def main() -> int:
     cur.executemany(
         """
         INSERT INTO font_families
-        (family, display_name, category, stroke,
+        (family, display_name, slug, category, stroke,
          subsets, axes, designers, languages, classifications, color_capabilities,
          popularity, trending, default_sort,
          is_noto, is_brand_font, is_open_source, is_variable,
          date_added, last_modified, file_count,
          created_at, updated_at)
-        VALUES (?,?,?,?, ?,?,?,?,?,?, ?,?,?, ?,?,?,?, ?,?,?, ?,?)
+        VALUES (?,?,?,?,?, ?,?,?,?,?,?, ?,?,?, ?,?,?,?, ?,?,?, ?,?)
         """,
         family_rows,
     )
