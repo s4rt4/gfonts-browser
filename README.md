@@ -3,6 +3,8 @@
 Local Google Fonts–style browser for your offline TTF collection.
 Browse, preview, filter, compare, install — all served from your own machine.
 
+![Gfonts Browser — light + dark themes](screenshot.jpg)
+
 > Stack: Laravel 11 + Alpine.js + Tailwind + SQLite. Python-only loader (no fonttools dependency). PowerShell-based per-user font installer for Windows.
 
 ## Features
