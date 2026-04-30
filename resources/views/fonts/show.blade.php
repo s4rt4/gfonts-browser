@@ -179,80 +179,109 @@
         </div>
     </section>
 
-    {{-- Sample / mockup contexts (sticky while scrolling through styles) --}}
-    <section class="sticky top-16 z-20 -mx-6 space-y-3 border-b border-border-soft bg-bg px-6 py-3 shadow-[0_8px_16px_-12px_rgb(var(--fg)/0.18)] theme-aware">
-        {{-- Mockup tabs --}}
-        <div class="flex flex-wrap items-center gap-1">
-            <template x-for="m in mockupOptions" :key="m.id">
+    {{-- Sample / mockup contexts (sticky, single-row compact) ─────── --}}
+    <section
+        x-data="{ presetsOpen: false }"
+        class="sticky top-16 z-20 -mx-6 border-b border-border-soft bg-bg px-6 py-2 shadow-[0_8px_16px_-12px_rgb(var(--fg)/0.18)] theme-aware"
+    >
+        <div class="flex flex-wrap items-center gap-2">
+            {{-- Mockup tabs --}}
+            <div class="flex shrink-0 flex-wrap gap-1">
+                <template x-for="m in mockupOptions" :key="m.id">
+                    <button
+                        type="button"
+                        @click="mockup = m.id"
+                        :class="mockup === m.id ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
+                        class="focus-ring rounded-full border px-2 py-0.5 text-[11px] theme-aware"
+                        x-text="m.label"
+                    ></button>
+                </template>
+            </div>
+
+            {{-- Sample text input (only in Sample mode) --}}
+            <input
+                x-show="mockup === 'sample'"
+                type="text"
+                x-model="text"
+                placeholder="Type to preview..."
+                class="focus-ring min-w-0 flex-1 rounded-md border border-border bg-bg px-2.5 py-1 text-xs theme-aware"
+            >
+
+            {{-- Presets dropdown (compact) --}}
+            <div x-show="mockup === 'sample'" class="relative shrink-0" @click.outside="presetsOpen = false">
                 <button
                     type="button"
-                    @click="mockup = m.id"
-                    :class="mockup === m.id ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
-                    class="focus-ring rounded-full border px-2.5 py-1 text-[11px] theme-aware"
-                    x-text="m.label"
-                ></button>
-            </template>
-            <span class="ml-auto text-xs text-muted/60">
-                <span class="hidden md:inline">Tab</span> to switch
-            </span>
-        </div>
+                    @click="presetsOpen = !presetsOpen"
+                    :class="presetsOpen ? 'border-fg' : 'border-border-soft hover:border-border'"
+                    class="focus-ring inline-flex items-center gap-1 rounded-md border bg-bg px-2 py-1 text-[11px] text-muted theme-aware"
+                >
+                    <span x-text="samplePresets.find(p => p.value === text)?.label || 'Presets'"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3 w-3"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div x-show="presetsOpen" x-cloak x-transition.opacity class="absolute right-0 top-full z-30 mt-1 w-40 overflow-hidden rounded-md border border-border-soft bg-bg p-1 shadow-popover">
+                    <template x-for="preset in samplePresets" :key="preset.label">
+                        <button
+                            type="button"
+                            @click="text = preset.value; presetsOpen = false"
+                            :class="text === preset.value ? 'bg-surface text-fg' : 'text-muted hover:bg-surface hover:text-fg'"
+                            class="block w-full rounded px-2 py-1 text-left text-xs"
+                            x-text="preset.label"
+                        ></button>
+                    </template>
+                </div>
+            </div>
 
-        {{-- Sample input (only for "Sample" mode, otherwise mockup uses preset content) --}}
-        <textarea
-            x-show="mockup === 'sample'"
-            x-model="text"
-            rows="2"
-            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
-            x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'; })"
-            class="focus-ring block w-full resize-none overflow-hidden rounded-md border border-border bg-bg px-3 py-2 text-sm leading-snug theme-aware"
-            placeholder="Type something to preview..."
-        ></textarea>
-        <div x-show="mockup === 'sample'" class="flex flex-wrap items-center gap-2">
-            <template x-for="preset in samplePresets" :key="preset.label">
-                <button
-                    type="button"
-                    @click="text = preset.value"
-                    :class="text === preset.value ? 'border-fg bg-fg text-bg' : 'border-border-soft text-muted hover:bg-surface hover:text-fg'"
-                    class="focus-ring rounded-full border px-2.5 py-0.5 text-[11px] theme-aware"
-                    x-text="preset.label"
-                ></button>
-            </template>
-        </div>
+            {{-- Size slider (only Sample mode, hidden on small) --}}
+            <div x-show="mockup === 'sample'" class="hidden shrink-0 items-center gap-1.5 md:flex">
+                <input type="range" min="14" max="200" x-model.number="size" class="w-24 lg:w-32">
+                <span class="tabular w-9 text-right text-[11px] text-muted" x-text="size + 'px'"></span>
+            </div>
 
-        {{-- Universal controls --}}
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
-            <label class="flex items-center gap-2" x-show="mockup === 'sample'">
-                <span class="text-xs uppercase tracking-wide text-muted">Size</span>
-                <input type="range" min="14" max="200" x-model.number="size" class="w-48">
-                <span class="tabular w-14 text-right text-xs" x-text="size + 'px'"></span>
-            </label>
+            {{-- Italic toggle --}}
             @if ($hasItalicFile || ($hasSlntAxis && $variableFiles->isNotEmpty()))
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" x-model="italic" class="h-4 w-4 rounded border-border">
+                <label class="flex shrink-0 cursor-pointer items-center gap-1 text-[11px] text-muted hover:text-fg">
+                    <input type="checkbox" x-model="italic" class="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent">
                     <span>Italic</span>
                 </label>
             @endif
+
+            {{-- OpenType features button --}}
             <button
                 type="button"
                 @click="otOpen = !otOpen"
-                :class="otOpen || hasActiveOt ? 'text-fg' : 'text-muted hover:text-fg'"
-                class="focus-ring rounded text-xs underline-offset-2 hover:underline"
+                :class="otOpen || hasActiveOt ? 'border-fg text-fg' : 'border-border-soft text-muted hover:text-fg'"
+                class="focus-ring inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] theme-aware"
+                title="OpenType features"
             >
-                <span x-show="!hasActiveOt">OpenType features</span>
-                <span x-show="hasActiveOt" x-text="`OpenType (${activeOtCount})`"></span>
+                <span class="font-mono">OT</span>
+                <span
+                    x-show="hasActiveOt"
+                    x-text="activeOtCount"
+                    class="rounded-full bg-accent px-1 text-[10px] font-medium text-white"
+                ></span>
             </button>
-            <button type="button" @click="reset" class="focus-ring rounded text-xs text-muted underline-offset-2 hover:text-fg hover:underline">
-                Reset
+
+            {{-- Reset (icon only) --}}
+            <button
+                type="button"
+                @click="reset"
+                class="focus-ring shrink-0 rounded-md p-1 text-muted hover:bg-surface hover:text-fg"
+                title="Reset preview"
+                aria-label="Reset preview"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-3.5 w-3.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/>
+                </svg>
             </button>
         </div>
 
-        {{-- OpenType features panel --}}
-        <div x-show="otOpen" x-cloak x-transition.opacity class="rounded-md border border-border-soft bg-bg p-3">
+        {{-- OpenType features panel (expands below when toggled) --}}
+        <div x-show="otOpen" x-cloak x-transition.opacity class="mt-2 rounded-md border border-border-soft bg-surface/40 p-3">
             <div class="mb-2 flex items-center justify-between">
                 <span class="text-xs font-medium uppercase tracking-wide text-muted">OpenType features</span>
-                <button @click="resetOt()" class="focus-ring text-xs text-muted hover:text-fg">Reset</button>
+                <button @click="resetOt()" class="focus-ring rounded text-xs text-muted hover:text-fg">Reset</button>
             </div>
-            <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4">
+            <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 <template x-for="feat in otFeatureList" :key="feat.tag">
                     <label class="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-surface" :title="feat.description">
                         <input type="checkbox" :checked="otFeatures[feat.tag]" @change="otFeatures[feat.tag] = $event.target.checked" class="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent">
