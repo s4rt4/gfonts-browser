@@ -229,12 +229,15 @@ For one-click start without opening a terminal:
 powershell -ExecutionPolicy Bypass -File tools\install-desktop-shortcut.ps1
 ```
 
-Creates two shortcuts on the Desktop with the app icon:
-
-- **Gfonts Browser** — starts the PHP server (hidden) and opens <http://localhost:8000>. Idempotent: if the server is already up, just opens the browser.
-- **Gfonts Browser (stop)** — kills the server (only the one this launcher started).
+Creates **Gfonts Browser** on the Desktop with the app icon. Double-click to start the PHP server (hidden) and open <http://localhost:8000>. Idempotent — if the server is already up, just opens the browser.
 
 The launcher uses `php` from PATH or, if not found, falls back to the highest version under `C:\laragon\bin\php\*\php.exe`.
+
+To stop the server (rarely needed — you can leave it running):
+
+```powershell
+powershell -File tools\stop-app.ps1
+```
 
 ## Refreshing TTFs from upstream Google Fonts
 
