@@ -62,6 +62,26 @@ python tools/load_fonts.py
 
 The loader truncates and re-inserts — schema lives in Laravel migrations, Python is a pure data loader.
 
+## Refreshing TTFs from upstream Google Fonts
+
+To pull the latest TTFs from [github.com/google/fonts](https://github.com/google/fonts), run:
+
+```bash
+python tools/sync_from_google_fonts_repo.py
+```
+
+This idempotently clones (or fast-forwards) `google/fonts` into `.google-fonts-source/`,
+copies every `.ttf` into `FONTS_ROOT` (flat), refreshes `database/seed/fonts.json`,
+and re-runs the indexer. Re-runs only copy changed files (size-based diff).
+
+For a one-time refresh that cleans up the clone afterwards:
+
+```bash
+python tools/sync_from_google_fonts_repo.py --clean-source
+```
+
+Other flags: `--skip-clone`, `--skip-metadata`, `--skip-index`, `--dry-run`.
+
 ## Where to put fonts
 
 Anywhere you like — point `FONTS_ROOT` at any folder of `.ttf` files. The repo intentionally does **not** ship a font collection (`/google-ttf` is gitignored).

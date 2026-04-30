@@ -13,6 +13,9 @@
 # Local font collection (user-provided, large; configured via FONTS_ROOT)
 /google-ttf
 
+# Optional clone of github.com/google/fonts used by tools/sync_from_google_fonts_repo.py
+/.google-fonts-source
+
 # Generated SQLite (rebuilt by tools/load_fonts.py)
 /database/*.sqlite
 /database/*.sqlite-journal
