@@ -28,6 +28,9 @@
         color-scheme: light dark;
     }
 
+    /* Hide elements until Alpine initializes their x-show / x-if state. */
+    [x-cloak] { display: none !important; }
+
     body {
         background-color: rgb(var(--bg));
         color: rgb(var(--fg));

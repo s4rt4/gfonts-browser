@@ -128,6 +128,24 @@
                     ></button>
                 </div>
 
+                {{-- Tags (notes-derived) --}}
+                <div class="space-y-2" x-show="$store.notes.allTags().length">
+                    <h3 class="text-xs font-medium uppercase tracking-wide text-muted">Tags</h3>
+                    <div class="flex flex-wrap gap-1">
+                        <template x-for="[tag, count] in $store.notes.allTags()" :key="tag">
+                            <button
+                                type="button"
+                                @click="search = (search + ' #' + tag).trim()"
+                                class="focus-ring inline-flex items-center gap-1 rounded-full border border-border-soft px-2 py-0.5 text-[11px] text-muted hover:border-accent/40 hover:bg-accent/5 hover:text-accent"
+                                :title="`${count} font${count === 1 ? '' : 's'} tagged`"
+                            >
+                                <span x-text="`#${tag}`"></span>
+                                <span class="text-muted/70" x-text="count"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
                 {{-- Collections --}}
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
@@ -237,6 +255,30 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {{-- Recently viewed bar ─────────────────────────────── --}}
+            <div
+                x-show="$store.recent.items.length > 0 && !search.trim() && !selectedCategories.length && !showFavoritesOnly && !activeCollection"
+                x-cloak
+                class="mb-4"
+            >
+                <div class="mb-2 flex items-center justify-between">
+                    <h3 class="text-xs font-medium uppercase tracking-wide text-muted">Recently viewed</h3>
+                    <button
+                        @click="$store.recent.clear()"
+                        class="focus-ring rounded text-xs text-muted hover:text-fg"
+                    >Clear</button>
+                </div>
+                <div class="thin-scrollbar flex gap-2 overflow-x-auto pb-1">
+                    <template x-for="name in $store.recent.items" :key="name">
+                        <a
+                            :href="`/fonts/${slug(name)}`"
+                            class="card-hover focus-ring shrink-0 rounded-full border border-border-soft bg-bg px-3 py-1.5 text-xs text-fg theme-aware hover:border-border"
+                            x-text="name"
+                        ></a>
+                    </template>
                 </div>
             </div>
 
@@ -614,6 +656,9 @@ document.addEventListener('alpine:init', () => {
         ],
 
         init() {
+            // Restore state from URL query params
+            this.readUrlState();
+
             this.$watch('pageItems', () => this.updateFontFaces());
             this.updateFontFaces();
 
@@ -626,6 +671,39 @@ document.addEventListener('alpine:init', () => {
             this.$watch('favorites', (v) => {
                 localStorage.setItem('gfonts.favorites', JSON.stringify(v));
             });
+
+            // Sync filters to URL (shareable / bookmarkable)
+            ['search', 'selectedCategories', 'sort', 'page', 'viewMode',
+             'showFavoritesOnly', 'activeCollection'].forEach(key => {
+                this.$watch(key, () => this.syncUrlState());
+            });
+        },
+
+        readUrlState() {
+            try {
+                const p = new URLSearchParams(window.location.search);
+                if (p.get('q'))    this.search = p.get('q');
+                if (p.get('cat'))  this.selectedCategories = p.get('cat').split(',').filter(Boolean);
+                if (p.get('sort')) this.sort = p.get('sort');
+                if (p.get('page')) this.page = Math.max(1, parseInt(p.get('page'), 10) || 1);
+                if (p.get('view') === 'list') this.viewMode = 'list';
+                if (p.get('fav') === '1')     this.showFavoritesOnly = true;
+                if (p.get('col'))  this.activeCollection = p.get('col');
+            } catch (e) { /* ignore */ }
+        },
+
+        syncUrlState() {
+            const p = new URLSearchParams();
+            if (this.search.trim())                  p.set('q', this.search);
+            if (this.selectedCategories.length)      p.set('cat', this.selectedCategories.join(','));
+            if (this.sort !== 'popularity')          p.set('sort', this.sort);
+            if (this.page > 1)                        p.set('page', String(this.page));
+            if (this.viewMode === 'list')            p.set('view', 'list');
+            if (this.showFavoritesOnly)              p.set('fav', '1');
+            if (this.activeCollection)               p.set('col', this.activeCollection);
+            const qs = p.toString();
+            const url = qs ? `?${qs}` : window.location.pathname;
+            window.history.replaceState({}, '', url);
         },
 
         updateFontFaces() {
@@ -640,7 +718,22 @@ document.addEventListener('alpine:init', () => {
 
         get filtered() {
             let out = this.families;
-            const q = this.search.trim().toLowerCase();
+            let raw = this.search.trim();
+
+            // Extract #tag tokens from search text
+            const tagMatches = raw.match(/#[\w-]+/g) || [];
+            const tags = tagMatches.map(t => t.slice(1).toLowerCase());
+            raw = raw.replace(/#[\w-]+/g, '').trim();
+
+            if (tags.length) {
+                const noteData = this.$store.notes.data;
+                out = out.filter(x => {
+                    const familyTags = (noteData[x.family]?.tags || []).map(t => t.toLowerCase());
+                    return tags.every(tag => familyTags.includes(tag));
+                });
+            }
+
+            const q = raw.toLowerCase();
             if (q) {
                 out = out.filter(x => x.family.toLowerCase().includes(q));
             }

@@ -122,6 +122,8 @@ class FontController extends Controller
         $prevName = $idx > 0 ? ($siblings[$idx - 1] ?? null) : null;
         $nextName = ($idx !== false && $idx < count($siblings) - 1) ? ($siblings[$idx + 1] ?? null) : null;
 
+        $pairings = $this->getSuggestedPairings($family);
+
         return view('fonts.show', [
             'family'         => $family,
             'axisRegistry'   => $axisRegistry,
@@ -130,7 +132,66 @@ class FontController extends Controller
             'nextSlug'       => $nextSlug,
             'prevName'       => $prevName,
             'nextName'       => $nextName,
+            'pairings'       => $pairings,
         ]);
+    }
+
+    /**
+     * Heuristic pairing suggestions — keyed by section label.
+     * Returns ['Section name' => Collection<FontFamily>, ...]
+     */
+    private function getSuggestedPairings(FontFamily $family): array
+    {
+        $cached = Cache::remember('fonts.pairing_pool', 300, function () {
+            return FontFamily::where('file_count', '>', 0)
+                ->whereNotNull('popularity')
+                ->select('id', 'family', 'category', 'popularity', 'file_count', 'is_variable')
+                ->with(['fontFiles' => fn ($q) => $q->orderBy('weight')->limit(3)])
+                ->get();
+        });
+
+        $byCategory = $cached->groupBy('category');
+        $popular    = fn ($coll) => $coll->sortBy(fn ($f) => $f->popularity ?? 1e9);
+        $exclude    = fn ($coll) => $coll->where('id', '!=', $family->id);
+
+        $sans     = $popular($exclude($byCategory->get('Sans Serif', collect())))->take(6)->values();
+        $serif    = $popular($exclude($byCategory->get('Serif', collect())))->take(6)->values();
+        $display  = $popular($exclude($byCategory->get('Display', collect())))->take(6)->values();
+        $mono     = $popular($exclude($byCategory->get('Monospace', collect())))->take(6)->values();
+        $same     = $popular($exclude($byCategory->get($family->category, collect())))->take(6)->values();
+
+        switch ($family->category) {
+            case 'Display':
+            case 'Handwriting':
+                return [
+                    'For body (sans)'  => $sans->take(4),
+                    'For body (serif)' => $serif->take(4),
+                    'Similar feel'     => $same->take(4),
+                ];
+            case 'Sans Serif':
+                return [
+                    'Editorial pair (serif)' => $serif->take(4),
+                    'Headline pair (display)' => $display->take(4),
+                    'Similar sans'           => $same->take(4),
+                ];
+            case 'Serif':
+                return [
+                    'Body pair (sans)'        => $sans->take(4),
+                    'Headline pair (display)' => $display->take(4),
+                    'Similar serif'           => $same->take(4),
+                ];
+            case 'Monospace':
+                return [
+                    'Pair with sans'  => $sans->take(4),
+                    'Pair with serif' => $serif->take(3),
+                    'Similar mono'    => $same->take(4),
+                ];
+            default:
+                return [
+                    'Popular sans'  => $sans->take(4),
+                    'Popular serif' => $serif->take(4),
+                ];
+        }
     }
 
     public function serveFile(FontFile $fontFile)
